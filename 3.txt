@@ -1,0 +1,38 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <omp.h>
+#include <ctime>
+
+using namespace std;
+
+const int array_size = 1e8;
+const int modul = 1e9 + 7;
+
+long long array_mul = 1;
+vector<int> my_array(array_size, 1);
+
+void OmpFun()
+{
+	array_mul = my_array[0];
+#pragma omp parallel for shared(my_array)
+	for (int i = 1; i < array_size; ++i)
+	{
+		if ((array_mul * my_array[i]) % modul != 0) {
+			array_mul = (my_array[i] * array_mul) % modul;
+		}
+		array_mul *= my_array[i];
+	}
+}
+
+int main()
+{
+	omp_set_num_threads(10);
+	srand(time(nullptr));
+	generate(my_array.begin(), my_array.end(), rand);
+	auto start = clock();
+	OmpFun();
+	auto end = clock();
+	cout << "Time " << (end - start) / 1000.0 << endl;
+	return 0;
+}

@@ -1,0 +1,66 @@
+#include <iostream>
+#include <thread>
+#include <vector>
+#include <mutex>
+
+using namespace std;
+
+mutex some_mutex;
+
+vector<vector<int>> a, b, c;
+const int array_size = 400;
+const int thread_count = 10;
+
+void thread_function(vector<vector<int>> m, vector<vector<int>> n, vector<vector<int>> p, int left, int right) {
+	lock_guard<mutex> otput(some_mutex);
+	cout << "Thread #" << this_thread::get_id() << " is done..." << endl;
+	for (int i = left ; i < right ; ++i) {
+		for (int j = left; j < right; ++j) {
+			for (int k = left; k < right; ++k) {
+				p[i][j] += m[i][k] * n[k][j];
+			}
+		}
+	}
+}
+
+int main() {
+	srand(time(nullptr));
+	a.resize(array_size);
+	b.resize(array_size);
+	c.resize(array_size);
+	for (int i = 0; i < array_size; ++i) {
+		a[i].resize(array_size);
+		b[i].resize(array_size);
+		c[i].resize(array_size);
+		for (int j = 0; j < array_size; ++j) {
+			a[i][j] = rand();
+			b[i][j] = rand();
+			c[i][j] = 0;
+		}
+	}
+
+	vector<thread> ths(thread_count);
+	int block_size = array_size / thread_count;
+	int cur_left = 0, cur_right = cur_left + block_size;
+	
+	auto start = clock();
+
+	for (auto &th : ths) {
+		th = thread(thread_function, a, b, c, cur_left, cur_right);
+		cur_left = cur_right;
+		cur_right = cur_left + block_size;
+	}
+	if (array_size % thread_count != 0) {
+		thread th = thread(thread_function, a, b, c, cur_right*thread_count, array_size);
+		th.join();
+	}
+
+	for (auto &th : ths)
+		th.join();
+
+	auto end = clock();
+
+	cout << "Time: " << (end - start) / 1000.0 << endl;
+
+	return 0;
+}
